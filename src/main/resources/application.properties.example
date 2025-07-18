@@ -1,0 +1,2 @@
+spring.application.name=my_telegram_gpt_bot
+bot.token=INSERT_YOUR_BOT_TOKEN_HERE
