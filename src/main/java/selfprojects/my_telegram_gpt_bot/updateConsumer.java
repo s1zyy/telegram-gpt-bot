@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -14,26 +15,53 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 import java.util.List;
 
 
+
 @Component
 public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
 
     private final TelegramClient telegramClient;
 
-    //private final OpenAiService openAiService;
+    private final OpenAiService openAiService;
 
-    public updateConsumer(@Value("${bot.token}") String botToken){
+    public updateConsumer(@Value("${bot.token}" )String botToken, OpenAiService openAiService){
         this.telegramClient = new OkHttpTelegramClient(botToken);
+        this.openAiService = openAiService;
     }
+
+//    @Bean// need to better understand bean working    еще код не запускается если использовать бин, пишет что он идет в телеграм
+    //  бот что бы создать объект OkHttpTelegramClient а там он требует создать объект updateConsumer и получается замкнутый круг
+    //попробовать мейби решить с папой
+//    public OkHttpTelegramClient telegramClient(@Value("${bot.token}" )String botToken){
+//        return new OkHttpTelegramClient(botToken);
+//    }
 
     @Override
     public void consume(Update update) {
-        var chatId = update.getMessage().getChatId();
-        String message = update.getMessage().getText();
-        sendMessage(chatId, message);
 
-        if(message.equals("/start")){
-            sendMainMenu(chatId);
+        var chatId = extractChatId(update);
+
+        if(update.hasMessage() && update.getMessage().hasText()){
+            String message = update.getMessage().getText();
+            if(message.equals("/start")){
+                sendMainMenu(chatId);
+            }
         }
+        else if(update.hasCallbackQuery()){
+            handleCallbackQuery(update.getCallbackQuery());
+        }
+    }
+
+    private void handleCallbackQuery(CallbackQuery callbackQuery) {
+        String text = callbackQuery.getData();
+        Long chatId = callbackQuery.getMessage().getChat().getId();
+
+        switch(text){
+            case "gpt" -> openAiService.askGpt(chatId);
+            case "project" -> sendMessage(chatId, "Nothing here yet!");
+            case "author" -> sendMessage(chatId, "Nothing here yet!");
+            default -> sendMessage(chatId, "Nothing here yet!");
+        }
+
     }
 
     private void sendMainMenu(Long chatId) {
@@ -71,8 +99,6 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
             throw new RuntimeException(e);
         }
     }
-
-
     public void sendMessage(Long chatId, String message){
 
         SendMessage sendMessage = SendMessage
@@ -86,5 +112,14 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
             throw new RuntimeException(e);
         }
 
+    }
+
+
+    public Long extractChatId(Update update){
+        if(update.hasMessage()){return update.getMessage().getChatId();}
+        else if(update.hasCallbackQuery()){return update.getCallbackQuery().getMessage().getChatId();}
+        else if(update.hasEditedMessage()){return update.getEditedMessage().getChatId();}
+        else if(update.hasChannelPost()){return update.getChannelPost().getChatId();}
+        else{return null;}
     }
 }
