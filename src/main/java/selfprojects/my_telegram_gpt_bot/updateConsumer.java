@@ -12,6 +12,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
+import selfprojects.my_telegram_gpt_bot.OpenAi.OpenAiService;
+
 import java.util.List;
 
 
@@ -38,6 +40,8 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
     @Override
     public void consume(Update update) {
 
+        String reply;
+
         var chatId = extractChatId(update);
 
         if(update.hasMessage() && update.getMessage().hasText()){
@@ -45,6 +49,17 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
             if(message.equals("/start")){
                 sendMainMenu(chatId);
             }
+            else{
+                String checkReply = openAiService.chatCompletionRequest(update.getMessage().getText());
+                if(checkReply != null){
+                    reply = checkReply;
+                }
+                else{
+                    reply = "Didnt get message from GPT :(";
+                }
+                sendMessage(chatId,reply);
+            }
+
         }
         else if(update.hasCallbackQuery()){
             handleCallbackQuery(update.getCallbackQuery());
@@ -56,7 +71,7 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
         Long chatId = callbackQuery.getMessage().getChat().getId();
 
         switch(text){
-            case "gpt" -> openAiService.askGpt(chatId);
+            case "gpt" -> sendMessage(chatId, "Ask gpt your question:");
             case "project" -> sendMessage(chatId, "Nothing here yet!");
             case "author" -> sendMessage(chatId, "Nothing here yet!");
             default -> sendMessage(chatId, "Nothing here yet!");
