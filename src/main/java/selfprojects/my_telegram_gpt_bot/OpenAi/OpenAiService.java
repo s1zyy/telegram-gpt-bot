@@ -12,7 +12,12 @@ public class OpenAiService {
 
     @Value("${gpt.token}")
     private String token;
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate =  new RestTemplate();
+
+//    @Autowired
+//    public OpenAiService(RestTemplate restTemplate) {
+//        this.restTemplate = restTemplate;
+//    }
 
     public String chatCompletionRequest(String message) {
 
@@ -24,14 +29,15 @@ public class OpenAiService {
         Message userMessage = new Message("user", message);
 
         List<Message> messagesList = List.of(userMessage);
+
         ChatCompletionRequest chatCompletionRequest = new ChatCompletionRequest("gpt-4.1", messagesList);
 
         HttpEntity<ChatCompletionRequest> request = new HttpEntity<>(chatCompletionRequest, headers);
 
-        ResponseEntity<ChatCompletionResponse> response = new RestTemplate().exchange(url, HttpMethod.POST, request, ChatCompletionResponse.class);
+        ResponseEntity<ChatCompletionResponse> response = restTemplate.exchange(url, HttpMethod.POST, request, ChatCompletionResponse.class);
 
         if(response.getBody() != null){
-            return response.getBody().getChoices().get(0).getMessage().getContent();
+            return response.getBody().getChoices().getFirst().getMessage().getContent();
         }
         return null;
 
