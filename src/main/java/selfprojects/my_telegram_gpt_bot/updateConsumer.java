@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
+import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -14,9 +15,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
-import selfprojects.my_telegram_gpt_bot.NumberFact.NumberService;
-import selfprojects.my_telegram_gpt_bot.OpenAi.OpenAiService;
-import selfprojects.my_telegram_gpt_bot.Quotes.QuotesService;
+import selfprojects.my_telegram_gpt_bot.Commands.TelegramCommandDispatcher;
+import selfprojects.my_telegram_gpt_bot.OpenAi.GptService;
 
 import java.util.List;
 
@@ -26,75 +26,50 @@ import java.util.List;
 public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
 
     private final TelegramClient telegramClient;
-    private final OpenAiService openAiService;
+    private final GptService gptService;
+    private final TelegramCommandDispatcher telegramCommandDispatcher;
 
-    private final QuotesService quotesService;
-    private final NumberService numberService;
 
-    public updateConsumer(@Value("${bot.token}" )String botToken, OpenAiService openAiService, QuotesService quotesService, NumberService numberService) {
+    public updateConsumer(@Value("${bot.token}" )String botToken, GptService gptService,TelegramCommandDispatcher commandDispatcher) {
         this.telegramClient = new OkHttpTelegramClient(botToken);
-        this.openAiService = openAiService;
-        this.quotesService = quotesService;
-        this.numberService = numberService;
+        this.gptService = gptService;
+        this.telegramCommandDispatcher = commandDispatcher;
     }
 
-//    @Bean// need to better understand bean working    еще код не запускается если использовать бин, пишет что он идет в телеграм
-    //  бот что бы создать объект OkHttpTelegramClient а там он требует создать объект updateConsumer и получается замкнутый круг
-    //попробовать мейби решить с папой
-//    public OkHttpTelegramClient telegramClient(@Value("${bot.token}" )String botToken){
-//        return new OkHttpTelegramClient(botToken);
-//    }
-
-    /**
-     * Processes incoming updates from Telegram and takes appropriate actions
-     * based on the content. Handles messages, callback queries, and specific
-     * commands such as "/start", "/quote", "/keyboard", or "/number {value}".
-     *
-     * @param update the incoming update object received from the Telegram API.
-     *               Contains information about messages, commands, or callback queries.
-     */
     @Override
     public void consume(Update update) {
 
-        String reply;
 
-        var chatId = extractChatId(update);
+        List<BotApiMethod<?>> botApiMethod = proceedCommand(update);
+        botApiMethod.forEach(method -> {
+            try {
 
-        if(update.hasMessage() && update.getMessage().hasText()){
-            String message = update.getMessage().getText();
+                telegramClient.execute(method);
 
-            if(message.startsWith("/number")){
-                String[] divide = message.split(" ");
-                if(divide.length == 2){
-                    int number = Integer.parseInt(divide[1]);
-                    String answer = numberService.number(number);
-                    sendMessage(chatId,answer);
-                }
+            } catch (TelegramApiException e) {
+                throw new RuntimeException(e);
             }
-            else{
-                switch (message){
-                    case "/start" -> {
-                            sendMainMenu(chatId);
-                    }
-                    case "/keyboard" -> {
-                        sendReplyMenu(chatId);
-                    }
-                    case "/quote" -> {
-                        String quote = quotesService.getQuote().getQuote();
-                        String author = quotesService.getQuote().getAuthor();
-                        String answer = "\""+ quote+"\"   by   "+author;
-                        sendMessage(chatId, answer);
-                    }
-                    default -> {
-                        String checkReply = openAiService.chatCompletionRequest(update.getMessage().getText());
-                        reply = checkReply != null ? checkReply :"Didnt get message from GPT :(";
-                        sendMessage(chatId,reply);
-                    }
-                }
-            }
+        });
+    }
+
+    public List<BotApiMethod<?>> proceedCommand(Update update) {
+        if(telegramCommandDispatcher.isCommand(update)){
+            return List.of(telegramCommandDispatcher.proceedCommand(update));
         }
-        else if(update.hasCallbackQuery()){
-            handleCallbackQuery(update.getCallbackQuery());
+        if(update.hasMessage() && update.getMessage().hasText()){
+            Long chatId = extractChatId(update);
+            String message = update.getMessage().getText();
+            String reply = gptService.chatCompletionRequestToUser(chatId, message);
+            SendMessage sendMessage = SendMessage.builder()
+                    .chatId(chatId)
+                    .text(reply)
+                    .build();
+            return List.of(
+                    sendMessage
+            );
+        }
+        else{
+            return List.of();
         }
     }
 
@@ -194,4 +169,5 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
         else if(update.hasChannelPost()){return update.getChannelPost().getChatId();}
         else{return null;}
     }
+
 }
