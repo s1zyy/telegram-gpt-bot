@@ -3,10 +3,10 @@ package selfprojects.my_telegram_gpt_bot.NumberFact;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-@Component
+@Service
 public class NumberService {
 
     private final RestTemplate restTemplate =  new RestTemplate();
