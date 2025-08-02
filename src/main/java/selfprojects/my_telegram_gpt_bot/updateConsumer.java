@@ -8,6 +8,7 @@ import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.Voice;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -17,7 +18,10 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import selfprojects.my_telegram_gpt_bot.Commands.TelegramCommandDispatcher;
 import selfprojects.my_telegram_gpt_bot.OpenAi.GptService;
+import selfprojects.my_telegram_gpt_bot.VoiceHandlers.DownloadVoice.VoiceHandlerService;
+import selfprojects.my_telegram_gpt_bot.VoiceHandlers.TransferToText.TransferService;
 
+import java.nio.file.Path;
 import java.util.List;
 
 
@@ -28,22 +32,23 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
     private final TelegramClient telegramClient;
     private final GptService gptService;
     private final TelegramCommandDispatcher telegramCommandDispatcher;
+    private final VoiceHandlerService voiceHandlerService;
+    private final TransferService transferService;
 
 
-    public updateConsumer(@Value("${bot.token}" )String botToken, GptService gptService,TelegramCommandDispatcher commandDispatcher) {
+    public updateConsumer(@Value("${bot.token}" )String botToken, GptService gptService, TelegramCommandDispatcher commandDispatcher, VoiceHandlerService voiceHandlerService, TransferService transferService) {
         this.telegramClient = new OkHttpTelegramClient(botToken);
         this.gptService = gptService;
         this.telegramCommandDispatcher = commandDispatcher;
+        this.voiceHandlerService = voiceHandlerService;
+        this.transferService = transferService;
     }
 
     @Override
     public void consume(Update update) {
-
-
         List<BotApiMethod<?>> botApiMethod = proceedCommand(update);
         botApiMethod.forEach(method -> {
             try {
-
                 telegramClient.execute(method);
 
             } catch (TelegramApiException e) {
@@ -52,25 +57,31 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
         });
     }
 
-    public List<BotApiMethod<?>> proceedCommand(Update update) {
+
+    public List<BotApiMethod<?>> proceedCommand(Update update){
         if(telegramCommandDispatcher.isCommand(update)){
             return List.of(telegramCommandDispatcher.proceedCommand(update));
         }
-        if(update.hasMessage() && update.getMessage().hasText()){
+        else if(update.hasMessage() && update.getMessage().hasText()){
             Long chatId = extractChatId(update);
             String message = update.getMessage().getText();
             String reply = gptService.chatCompletionRequestToUser(chatId, message);
-            SendMessage sendMessage = SendMessage.builder()
-                    .chatId(chatId)
-                    .text(reply)
-                    .build();
-            return List.of(
-                    sendMessage
-            );
+            return buildMessage(chatId, reply);
         }
-        else{
-            return List.of();
+        else if(update.hasMessage() && update.getMessage().hasVoice()){
+            Long chatId = extractChatId(update);
+            try {
+                telegramClient.execute(buildMessage(chatId,"This is very long process, please wait...").getFirst());
+            } catch (TelegramApiException e) {
+                throw new RuntimeException(e);
+            }
+            Voice voice = update.getMessage().getVoice();
+            Path voiceMessage = voiceHandlerService.downloadVoice(voice);
+            String transferredText = transferService.transferToText(voiceMessage);
+            String replyFromGpt = gptService.chatCompletionRequestToUser(chatId, transferredText);
+            return buildMessage(chatId, replyFromGpt);
         }
+        return List.of();
     }
 
 
@@ -79,10 +90,10 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
         Long chatId = callbackQuery.getMessage().getChat().getId();
 
         switch(text){
-            case "gpt" -> sendMessage(chatId, "Ask gpt your question:");
-            case "project" -> sendMessage(chatId, "Nothing here yet!");
-            case "author" -> sendMessage(chatId, "Nothing here yet!");
-            default -> sendMessage(chatId, "Nothing here yet!");
+            case "gpt" -> buildMessage(chatId, "Ask gpt your question:");
+            case "project" -> buildMessage(chatId, "Nothing here yet!");
+            case "author" -> buildMessage(chatId, "Nothing here yet!");
+            default -> buildMessage(chatId, "Nothing here yet!");
         }
 
     }
@@ -146,19 +157,14 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
             throw new RuntimeException(e);
         }
     }
-    public void sendMessage(Long chatId, String message){
+    public List<BotApiMethod<?>> buildMessage(Long chatId, String message){
 
         SendMessage sendMessage = SendMessage
                 .builder()
                 .chatId(chatId)
                 .text(message)
                 .build();
-        try {
-            telegramClient.execute(sendMessage);
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
-        }
-
+        return List.of(sendMessage);
     }
 
 

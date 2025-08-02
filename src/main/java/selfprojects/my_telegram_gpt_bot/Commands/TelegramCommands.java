@@ -7,7 +7,8 @@ public enum TelegramCommands {
     START_COMMAND("/start"),
     CLEAR_COMMAND("/clear"),
     NUMBERFACT_COMMAND("/number"),
-    QUOTES_COMMAND("/quote");
+    QUOTES_COMMAND("/quote"),
+    SETTINGS_COMMAND("/settings");
 
     private final String commandValue;
 

@@ -26,7 +26,7 @@ public class ChatGptHistory {
                 .build();
         gptRepository.save(messageEntity);
         //return getAllMessages(id);
-        
+
     }
 
     public List<Message> getAllMessages(Long id) {
@@ -48,9 +48,5 @@ public void deleteAllMessages(Long id){
                 .toList();
         gptRepository.deleteAll(messageEntities);
 }
-    
-
-
-
 
 }

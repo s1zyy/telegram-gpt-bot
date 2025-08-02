@@ -19,6 +19,7 @@ public class GptService {
     public String chatCompletionRequestToUser(
             Long chatId,
             String message) {
+
         chatGptHistory.addMessageToHistory(chatId,message, "user");
         List<Message> history = chatGptHistory.getAllMessages(chatId);
         var request = ChatCompletionRequest.builder()
