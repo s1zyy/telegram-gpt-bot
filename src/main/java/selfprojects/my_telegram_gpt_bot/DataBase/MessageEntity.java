@@ -3,7 +3,7 @@ package selfprojects.my_telegram_gpt_bot.DataBase;
 import jakarta.persistence.*;
 import lombok.*;
 
-@Table(name = "gptmessagesTest")
+@Table(name = "gptmessages_test")
 @Entity
 @Data
 @Builder
@@ -15,8 +15,9 @@ public class MessageEntity {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "chat_id")
-    private Long chatId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chat_id", referencedColumnName = "chat_id")
+    private UsersEntity usersEntity;
 
     @Column(name = "message")
     private String message;

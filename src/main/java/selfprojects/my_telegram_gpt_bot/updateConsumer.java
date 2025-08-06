@@ -6,7 +6,6 @@ import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.Voice;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -17,13 +16,14 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import selfprojects.my_telegram_gpt_bot.Commands.TelegramCommandDispatcher;
+import selfprojects.my_telegram_gpt_bot.DataBase.UsersRepository;
 import selfprojects.my_telegram_gpt_bot.OpenAi.GptService;
+import selfprojects.my_telegram_gpt_bot.Settings.SettingsService;
 import selfprojects.my_telegram_gpt_bot.VoiceHandlers.DownloadVoice.VoiceHandlerService;
 import selfprojects.my_telegram_gpt_bot.VoiceHandlers.TransferToText.TransferService;
 
 import java.nio.file.Path;
 import java.util.List;
-
 
 
 @Component
@@ -34,14 +34,19 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
     private final TelegramCommandDispatcher telegramCommandDispatcher;
     private final VoiceHandlerService voiceHandlerService;
     private final TransferService transferService;
+    private final HandleCallBackQuery handleCallBackQuery;
+    private final SettingsService settingsService;
 
 
-    public updateConsumer(@Value("${bot.token}" )String botToken, GptService gptService, TelegramCommandDispatcher commandDispatcher, VoiceHandlerService voiceHandlerService, TransferService transferService) {
+    public updateConsumer(@Value("${bot.token}" )String botToken, GptService gptService, TelegramCommandDispatcher commandDispatcher, VoiceHandlerService voiceHandlerService, TransferService transferService, HandleCallBackQuery handleCallBackQuery, SettingsService settingsService) {
         this.telegramClient = new OkHttpTelegramClient(botToken);
         this.gptService = gptService;
         this.telegramCommandDispatcher = commandDispatcher;
         this.voiceHandlerService = voiceHandlerService;
         this.transferService = transferService;
+        this.handleCallBackQuery = handleCallBackQuery;
+        this.settingsService = settingsService;
+
     }
 
     @Override
@@ -59,43 +64,45 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
 
 
     public List<BotApiMethod<?>> proceedCommand(Update update){
+        Long chatId = extractChatId(update);
+        if(chatId != null){
+            settingsService.innitSettings(update,chatId);
+        }
         if(telegramCommandDispatcher.isCommand(update)){
             return List.of(telegramCommandDispatcher.proceedCommand(update));
         }
-        else if(update.hasMessage() && update.getMessage().hasText()){
-            Long chatId = extractChatId(update);
-            String message = update.getMessage().getText();
-            String reply = gptService.chatCompletionRequestToUser(chatId, message);
-            return buildMessage(chatId, reply);
+
+        else if(update.hasCallbackQuery()){
+            return List.of(handleCallBackQuery.handler(update.getCallbackQuery()));
         }
-        else if(update.hasMessage() && update.getMessage().hasVoice()){
-            Long chatId = extractChatId(update);
-            try {
-                telegramClient.execute(buildMessage(chatId,"This is very long process, please wait...").getFirst());
-            } catch (TelegramApiException e) {
-                throw new RuntimeException(e);
+
+        else if(update.hasMessage()) {
+
+            if (update.getMessage().hasVoice()) {
+                try {
+                    telegramClient.execute(buildMessage(chatId, "This is very long process, please wait...").getFirst());
+                } catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
+                }
+                Voice voice = update.getMessage().getVoice();
+                Path voiceMessage = voiceHandlerService.downloadVoice(voice);
+                String transferredText = transferService.transferToText(voiceMessage);
+                String replyFromGpt = gptService.chatCompletionRequestToUser(chatId, transferredText);
+                return buildMessage(chatId, replyFromGpt);
+
+            } else if (update.getMessage().hasText()) {
+                String text = update.getMessage().getText();
+
+            if (settingsService.handler(text, chatId)) {
+                String message = update.getMessage().getText();
+                String reply = gptService.chatCompletionRequestToUser(chatId, message);
+                return buildMessage(chatId, reply);
             }
-            Voice voice = update.getMessage().getVoice();
-            Path voiceMessage = voiceHandlerService.downloadVoice(voice);
-            String transferredText = transferService.transferToText(voiceMessage);
-            String replyFromGpt = gptService.chatCompletionRequestToUser(chatId, transferredText);
-            return buildMessage(chatId, replyFromGpt);
+
+        }
+
         }
         return List.of();
-    }
-
-
-    private void handleCallbackQuery(CallbackQuery callbackQuery) {
-        String text = callbackQuery.getData();
-        Long chatId = callbackQuery.getMessage().getChat().getId();
-
-        switch(text){
-            case "gpt" -> buildMessage(chatId, "Ask gpt your question:");
-            case "project" -> buildMessage(chatId, "Nothing here yet!");
-            case "author" -> buildMessage(chatId, "Nothing here yet!");
-            default -> buildMessage(chatId, "Nothing here yet!");
-        }
-
     }
 
     private void sendReplyMenu(Long chatId) {

@@ -1,9 +1,0 @@
-package selfprojects.my_telegram_gpt_bot.DataBase;
-
-
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-@Repository
-public interface GptRepository extends JpaRepository<MessageEntity, Long> {
-}
