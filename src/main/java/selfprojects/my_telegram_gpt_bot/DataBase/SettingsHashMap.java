@@ -8,6 +8,7 @@ import java.util.HashMap;
 public class SettingsHashMap {
     public static final String WAITING_FOR_NAME = "WAITING_FOR_NAME";
     public static final String WAITING_FOR_TONE = "WAITING_FOR_TONE";
+    public static final String WAITING_FOR_BIRTHDAY = "WAITING_FOR_BIRTHDAY";
     private final HashMap<Long, String> settingsHashMap = new HashMap<>();
 
     public void setUserState(Long userId, String state){
@@ -28,6 +29,10 @@ public class SettingsHashMap {
     public boolean isWaitingForTone(Long userId){
         return WAITING_FOR_TONE.equals(getUserState(userId));
     }
+    public boolean isWaitingForBirthday(Long userId){
+        return WAITING_FOR_BIRTHDAY.equals(getUserState(userId));
+    }
+
 
 
 }

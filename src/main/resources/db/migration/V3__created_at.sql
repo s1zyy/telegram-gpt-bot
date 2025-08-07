@@ -1,0 +1,6 @@
+ALTER TABLE users
+    ADD created_at TIMESTAMP WITHOUT TIME ZONE;
+
+ALTER TABLE users
+DROP
+COLUMN local_date;

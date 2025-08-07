@@ -35,9 +35,16 @@ public class SettingsCommandHandler implements TelegramCommandHandler {
                 .callbackData("set_tone")
                 .build();
 
+        var button3 = InlineKeyboardButton
+                .builder()
+                .text("Set your birthday")
+                .callbackData("set_birthday")
+                .build();
+
         List<InlineKeyboardRow>  inlineKeyboardRows =List.of(
                 new InlineKeyboardRow(button1),
-                new InlineKeyboardRow(button2)
+                new InlineKeyboardRow(button2),
+                new InlineKeyboardRow(button3)
         );
 
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup(inlineKeyboardRows);

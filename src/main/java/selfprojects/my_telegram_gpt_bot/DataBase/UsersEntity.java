@@ -6,7 +6,10 @@ import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +37,7 @@ public class UsersEntity {
     @Column(name = "tone")
     private String tone;
 
-    @Column(name = "local_date")
+    @Column(name = "created_at")
     @CreatedDate
     private LocalDateTime createdAt;
 
@@ -44,5 +47,14 @@ public class UsersEntity {
 
     @OneToMany(mappedBy = "usersEntity", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<MessageEntity> messageEntityList = new ArrayList<>();
+
+    @Column(name = "birthday")
+    private LocalDate birthday;
+
+
+    @Transient
+    private int getAge(){
+        return Period.between(birthday, LocalDate.now()).getYears();
+    }
 
 }

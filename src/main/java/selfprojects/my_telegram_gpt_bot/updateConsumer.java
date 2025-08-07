@@ -1,8 +1,6 @@
 package selfprojects.my_telegram_gpt_bot;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -16,7 +14,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import selfprojects.my_telegram_gpt_bot.Commands.TelegramCommandDispatcher;
-import selfprojects.my_telegram_gpt_bot.DataBase.UsersRepository;
 import selfprojects.my_telegram_gpt_bot.OpenAi.GptService;
 import selfprojects.my_telegram_gpt_bot.Settings.SettingsService;
 import selfprojects.my_telegram_gpt_bot.VoiceHandlers.DownloadVoice.VoiceHandlerService;
@@ -38,15 +35,14 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
     private final SettingsService settingsService;
 
 
-    public updateConsumer(@Value("${bot.token}" )String botToken, GptService gptService, TelegramCommandDispatcher commandDispatcher, VoiceHandlerService voiceHandlerService, TransferService transferService, HandleCallBackQuery handleCallBackQuery, SettingsService settingsService) {
-        this.telegramClient = new OkHttpTelegramClient(botToken);
+    public updateConsumer(TelegramClient telegramClient, GptService gptService, TelegramCommandDispatcher commandDispatcher, VoiceHandlerService voiceHandlerService, TransferService transferService, HandleCallBackQuery handleCallBackQuery, SettingsService settingsService) {
+        this.telegramClient = telegramClient;
         this.gptService = gptService;
         this.telegramCommandDispatcher = commandDispatcher;
         this.voiceHandlerService = voiceHandlerService;
         this.transferService = transferService;
         this.handleCallBackQuery = handleCallBackQuery;
         this.settingsService = settingsService;
-
     }
 
     @Override
@@ -92,12 +88,16 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
 
             } else if (update.getMessage().hasText()) {
                 String text = update.getMessage().getText();
+                String settings = settingsService.handler(text, chatId);
+                if(settings != null){
+                    return buildMessage(chatId, settings);
+                }
 
-            if (settingsService.handler(text, chatId)) {
-                String message = update.getMessage().getText();
-                String reply = gptService.chatCompletionRequestToUser(chatId, message);
-                return buildMessage(chatId, reply);
-            }
+                else{
+                    String message = update.getMessage().getText();
+                    String reply = gptService.chatCompletionRequestToUser(chatId, message);
+                    return buildMessage(chatId, reply);
+                }
 
         }
 

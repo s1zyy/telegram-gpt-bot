@@ -7,7 +7,8 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import selfprojects.my_telegram_gpt_bot.DataBase.UsersEntity;
 import selfprojects.my_telegram_gpt_bot.DataBase.SettingsHashMap;
 import selfprojects.my_telegram_gpt_bot.DataBase.UsersRepository;
-
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 @Service
@@ -15,10 +16,12 @@ import java.util.Optional;
 public class SettingsService {
     private final SettingsHashMap settingsHashMap;
     private final UsersRepository settingsRepository;
+    private final String defaultTone;
 
     public SettingsService(SettingsHashMap settingsHashMap, UsersRepository settingsRepository) {
         this.settingsHashMap = settingsHashMap;
         this.settingsRepository = settingsRepository;
+        this.defaultTone = "You are a helpful assistant!";
     }
 
 
@@ -32,7 +35,7 @@ public class SettingsService {
                 .builder()
                 .chatId(chatId.toString())
                 .userName(name)
-                .tone("You are a helpfull assistant!")
+                .tone(defaultTone)
                 .build();
         try{
             settingsRepository.save(usersEntity);
@@ -42,14 +45,17 @@ public class SettingsService {
         }
     }
 
-    public boolean handler(String text, Long chatId) {
+
+
+
+    public String handler(String text, Long chatId) {
         if (settingsHashMap.isWaitingForName(chatId)) {
             Optional<UsersEntity> user_settings = settingsRepository.findByChatId(chatId.toString());
             if (user_settings.isPresent()) {
                 user_settings.get().setUserName(text);
             }
             settingsHashMap.deleteUserState(chatId);
-            return false;
+            return "Your name is successfully updated!";
         }
         else if (settingsHashMap.isWaitingForTone(chatId)) {
             Optional<UsersEntity> user_settings = settingsRepository.findByChatId(chatId.toString());
@@ -57,11 +63,26 @@ public class SettingsService {
                 user_settings.get().setTone(text);
             }
             settingsHashMap.deleteUserState(chatId);
-            return false;
-
+            return "Your tone is successfully updated!";
+        }
+        else if (settingsHashMap.isWaitingForBirthday(chatId)) {
+            Optional<UsersEntity> user_settings = settingsRepository.findByChatId(chatId.toString());
+            if (user_settings.isPresent()) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                LocalDate birthday;
+                try{
+                    birthday = LocalDate.parse(text,formatter);
+                }
+                catch (Exception e){
+                    return "Please enter your birthday correctly! The format is: dd-mm-yyyy (Example 05-05-2000)";
+                }
+                user_settings.get().setBirthday(birthday);
+            }
+            settingsHashMap.deleteUserState(chatId);
+            return "Your birthday is successfully updated!";
         }
 
-        return true;
+        return null;
 
     }
 }

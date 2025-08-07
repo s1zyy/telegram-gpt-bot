@@ -1,4 +1,4 @@
-package selfprojects.my_telegram_gpt_bot.OpenAi.Api;
+package selfprojects.my_telegram_gpt_bot.Configs;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
