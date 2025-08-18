@@ -9,8 +9,7 @@ public enum TelegramCommands {
     NUMBERFACT_COMMAND("/number"),
     QUOTES_COMMAND("/quote"),
     SETTINGS_COMMAND("/settings"),
-    DELETEUSER_COMMAND("/deleteUser"),
-    BACK_COMMAND("/back");
+    DELETEUSER_COMMAND("/deleteUser");
 
     private final String commandValue;
 

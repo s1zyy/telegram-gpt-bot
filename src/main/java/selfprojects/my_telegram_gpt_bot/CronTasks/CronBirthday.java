@@ -8,6 +8,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import selfprojects.my_telegram_gpt_bot.DataBase.UsersEntity;
 import selfprojects.my_telegram_gpt_bot.DataBase.UsersRepository;
+import selfprojects.my_telegram_gpt_bot.Redis.RedisCache;
 
 import java.time.LocalDate;
 import java.time.MonthDay;
@@ -20,26 +21,33 @@ public class CronBirthday {
 
     private final TelegramClient telegramClient;
     private final UsersRepository usersRepository;
+    private final RedisCache redisCache;
 
-    public CronBirthday(TelegramClient telegramClient, UsersRepository usersRepository) {
+    public CronBirthday(TelegramClient telegramClient, UsersRepository usersRepository, RedisCache redisCache) {
         this.telegramClient = telegramClient;
         this.usersRepository = usersRepository;
+        this.redisCache = redisCache;
     }
 
     @Scheduled(cron = "0 0 9 * * ?")
     public void happyBirthday(){
 
         LocalDate today = LocalDate.now(ZoneId.of("Europe/Dublin"));
-        System.out.println(today);
+
         MonthDay monthDay = MonthDay.from(today);
 
-        List<UsersEntity> birthdayHuman = usersRepository.findAll();
+        int day = monthDay.getDayOfMonth();
+        int month = monthDay.getMonthValue();
 
-        List<UsersEntity> filteredHumans = birthdayHuman.stream()
-                .filter(user -> MonthDay.from(user.getBirthday()).equals(monthDay))
-                .toList();
-        filteredHumans
+        List<UsersEntity> birthdayHuman = usersRepository.findByBirthdayMonthAndDay(month, day);
+
+        birthdayHuman
                 .forEach(usersEntity -> {
+
+                    boolean checkGreeting = redisCache.hasRedis(usersEntity.getChatId());
+                    if(checkGreeting){return;}
+
+                    redisCache.setGreeted(usersEntity.getChatId());
 
                     SendMessage message = SendMessage
                             .builder()

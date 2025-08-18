@@ -14,30 +14,60 @@ import java.util.List;
 
 @Component
 public class SettingsCommandHandler implements TelegramCommandHandler {
+    private final String settingsMessage = """
+    ⚙️ Settings Menu
+    
+    Here you can customize your bot experience:
+    • Change how the bot addresses you
+    • Set the bot's communication style
+    • Add your birthday for special greetings
+    
+    Please select an option below:
+    """;
+
     @Override
     public BotApiMethod<?> proceedCommand(Update update) {
 
-        SendMessage sendMessage = SendMessage
-                .builder()
+        String settingsMessage = getSettingsMessage();
+
+        InlineKeyboardMarkup inlineKeyboardMarkup = getSettingsInlineKeyboardMarkup();
+
+
+
+        return SendMessage.builder()
                 .chatId(update.getMessage().getChatId())
-                .text("Here is your setting menu!")
+                .text(settingsMessage)
+                .replyMarkup(inlineKeyboardMarkup)
                 .build();
+    }
+
+    @Override
+    public TelegramCommands getSupportedCommand() {
+        return TelegramCommands.SETTINGS_COMMAND;
+    }
+
+
+    public String getSettingsMessage(){
+        return settingsMessage;
+    }
+
+    public InlineKeyboardMarkup getSettingsInlineKeyboardMarkup(){
 
         var button1 = InlineKeyboardButton
                 .builder()
-                .text("Set name")
+                .text("\uD83C\uDFA8 Customize Name\n")
                 .callbackData("set_name")
                 .build();
 
         var button2 = InlineKeyboardButton
                 .builder()
-                .text("Set GPT's tone")
+                .text("\uD83D\uDCAD Bot Personality\n")
                 .callbackData("set_tone")
                 .build();
 
         var button3 = InlineKeyboardButton
                 .builder()
-                .text("Set your birthday")
+                .text("\uD83C\uDF82 Birthday Reminder\n")
                 .callbackData("set_birthday")
                 .build();
 
@@ -47,15 +77,6 @@ public class SettingsCommandHandler implements TelegramCommandHandler {
                 new InlineKeyboardRow(button3)
         );
 
-        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup(inlineKeyboardRows);
-
-        sendMessage.setReplyMarkup(inlineKeyboardMarkup);
-
-        return sendMessage;
-    }
-
-    @Override
-    public TelegramCommands getSupportedCommand() {
-        return TelegramCommands.SETTINGS_COMMAND;
+        return new InlineKeyboardMarkup(inlineKeyboardRows);
     }
 }

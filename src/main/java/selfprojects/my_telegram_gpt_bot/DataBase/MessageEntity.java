@@ -19,9 +19,11 @@ public class MessageEntity {
     @JoinColumn(name = "chat_id", referencedColumnName = "chat_id")
     private UsersEntity usersEntity;
 
-    @Column(name = "message")
+
+    @Column(name = "message", columnDefinition = "TEXT")
     private String message;
 
     @Column(name = "role")
     private String role;
+
 }

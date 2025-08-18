@@ -11,12 +11,20 @@ import selfprojects.my_telegram_gpt_bot.Commands.TelegramCommands;
 public class StartCommandHandler implements TelegramCommandHandler {
 
     private final String HELLO_USER = """
-                Hello %s
-                Using this bot your can speak with GPT
-                Each message is saved for logic
-                To clear message history type /clear
-                To get a random quote type /quote
-                To get a random number fact type /number (your_number)
+                🤖 Hello, %s! 👋
+            
+                Welcome to your personal GPT-powered assistant.
+            
+                📝 Available commands:
+                • 💬 Simply send a message to chat with me
+                • 🧹 /clear - Clear chat history
+                • 💡 /quote - Get inspiring quote
+                • 🔢 /number - Fun number facts
+                • ⚙️ /settings - Personalize bot
+            
+                ✨ Pro tip: Our conversation history is saved to provide better context!
+            
+                Let's start chatting! 🚀
             """;
     @Override
     public BotApiMethod<?> proceedCommand(Update update) {

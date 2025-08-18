@@ -6,11 +6,6 @@ import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.Voice;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import selfprojects.my_telegram_gpt_bot.Commands.TelegramCommandDispatcher;
@@ -105,65 +100,6 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
         return List.of();
     }
 
-    private void sendReplyMenu(Long chatId) {
-        SendMessage sendMessage = SendMessage
-                .builder()
-                .chatId(chatId)
-                .text("This is your reply keyboard!")
-                .build();
-
-        List<KeyboardRow> keyboardRow = List.of(
-                new KeyboardRow("/gpt", "/quote")
-        );
-
-        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup(keyboardRow);
-
-        sendMessage.setReplyMarkup(replyKeyboardMarkup);
-
-        try {
-            telegramClient.execute(sendMessage);
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
-        }
-
-    }
-
-
-    private void sendMainMenu(Long chatId) {
-
-        SendMessage sendMessage = SendMessage
-                .builder()
-                .chatId(chatId)
-                .text("This is your main menu!")
-                .build();
-
-        var button1 = InlineKeyboardButton.builder()
-                .text("Ask GPT a question")
-                .callbackData("gpt")
-                .build();
-        var button2 = InlineKeyboardButton.builder()
-                .text("About this project")
-                .callbackData("project")
-                .build();
-        var button3 = InlineKeyboardButton.builder()
-                .text("About author")
-                .callbackData("author")
-                .build();
-
-        List<InlineKeyboardRow> inlineKeyboardRows = List.of(
-                new InlineKeyboardRow(button1),
-                new InlineKeyboardRow(button2),
-                new InlineKeyboardRow(button3)
-        );
-
-        InlineKeyboardMarkup markup = new InlineKeyboardMarkup(inlineKeyboardRows);
-        sendMessage.setReplyMarkup(markup);
-        try {
-            telegramClient.execute(sendMessage);
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
-        }
-    }
     public List<BotApiMethod<?>> buildMessage(Long chatId, String message){
 
         SendMessage sendMessage = SendMessage
@@ -173,7 +109,6 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
                 .build();
         return List.of(sendMessage);
     }
-
 
     public Long extractChatId(Update update){
         if(update.hasMessage()){return update.getMessage().getChatId();}
