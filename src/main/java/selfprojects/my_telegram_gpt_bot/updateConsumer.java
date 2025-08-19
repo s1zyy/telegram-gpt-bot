@@ -4,6 +4,8 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendSticker;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.Voice;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -42,19 +44,30 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
 
     @Override
     public void consume(Update update) {
-        List<BotApiMethod<?>> botApiMethod = proceedCommand(update);
+        List<Object> botApiMethod = proceedCommand(update);
         botApiMethod.forEach(method -> {
-            try {
-                telegramClient.execute(method);
 
-            } catch (TelegramApiException e) {
-                throw new RuntimeException(e);
+            if(method instanceof SendSticker){
+                try {
+                    telegramClient.execute((SendSticker) method);
+
+                } catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
+                }
             }
+            else if(method instanceof SendMessage){
+                try {
+                    telegramClient.execute((SendMessage)method);
+                } catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
         });
     }
 
 
-    public List<BotApiMethod<?>> proceedCommand(Update update){
+    public List<Object> proceedCommand(Update update){
         Long chatId = extractChatId(update);
         if(chatId != null){
             settingsService.innitSettings(update,chatId);
@@ -71,7 +84,7 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
 
             if (update.getMessage().hasVoice()) {
                 try {
-                    telegramClient.execute(buildMessage(chatId, "This is very long process, please wait...").getFirst());
+                    telegramClient.execute((BotApiMethod<?>)buildMessage(chatId, "This is very long process, please wait...").getFirst());
                 } catch (TelegramApiException e) {
                     throw new RuntimeException(e);
                 }
@@ -95,12 +108,27 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
                 }
 
             }
+            else if(update.getMessage().hasSticker()){
+                String stickerId = update.getMessage().getSticker().getFileId();
+
+                if (chatId == null) throw new AssertionError();
+                SendSticker sendSticker = SendSticker.builder()
+                        .sticker(new InputFile(stickerId))
+                        .chatId(chatId)
+                        .build();
+
+                var message = SendMessage.builder()
+                        .chatId(chatId)
+                        .text("Sticker function is not developed!")
+                        .build();
+                return List.of(message, sendSticker);
+            }
 
         }
         return List.of();
     }
 
-    public List<BotApiMethod<?>> buildMessage(Long chatId, String message){
+    public List<Object> buildMessage(Long chatId, String message){
 
         SendMessage sendMessage = SendMessage
                 .builder()
