@@ -44,7 +44,7 @@ A feature-rich Telegram bot powered by GPT-4, offering conversational AI capabil
 
 📡 Telegram Bots API
 
-🔗 APIs Integrated
+🔗 <b>APIs Integrated</b>
 
 🤖 OpenAI GPT-4
 
@@ -54,7 +54,7 @@ A feature-rich Telegram bot powered by GPT-4, offering conversational AI capabil
 
 💬 Quotes API
 
-💾 Database
+💾 <b>Database</b>
 
 🗄 JPA/Hibernate for data persistence
 
@@ -62,7 +62,7 @@ A feature-rich Telegram bot powered by GPT-4, offering conversational AI capabil
 
 🐘 PostgreSQL (implied by JPA configuration)
 
-🗂 Project Structure
+🗂 <b>Project Structure</b>
 
 📜 Command Pattern for handling Telegram commands
 
@@ -86,24 +86,33 @@ A feature-rich Telegram bot powered by GPT-4, offering conversational AI capabil
 
 /deleteUser - Remove user data from the bot
 
-⚙️ <b>Setup</b>
+<b>Getting started🚀</b>
 
-<b>Configure Environment Variables</b>
+<b>Prerequisites</b>
 
-🔑 bot.token - Telegram Bot Token
+Java 21+
 
-🔑 gpt.token - OpenAI API Key
+PostgreSQL 15+
 
-🔑 quote.token - Quotes API Token
+Redis 6+
 
-<b>Database Configuration</b>
+Maven 3.8+
 
-📝 Configure JPA properties
+<b>Instalation</b>
 
-📝 Configure Redis properties
+<b>1. Clone the repository</b>
 
-<b>Build and Run</b>
-🏗 Run the Maven build and start the application
+git clone https://github.com/s1zyy/gptTelegramBot.git
+
+<b>2. Configure environment variables (see application.properties.example)</b>
+
+<b>3.Run database migrations</b>
+
+<b>4. Build and run the application</b>
+
+./mvnw clean install
+
+./mvnw spring-boot:run
 
 🏗 <b>Architecture</b>
 
@@ -121,10 +130,11 @@ The project follows a clean architecture pattern with the following components:
 
 ⚙️ Configuration: System configuration classes
 
-📄 <b>License</b>
+📝 <b>TODO</b>
 
-This project is licensed under the MIT License. See the LICENSE file for details.
-Contacts
+🐳 Add Dockerfile for containerized deployment
+
+📦 Add docker-compose configuration for development and production setup
 
 📫 <b>Get in Touch</b>
 
@@ -138,14 +148,12 @@ Feel free to reach out if you have questions, feedback, or want to collaborate:
 
 💻 GitHub: [My GitHub profile](https://github.com/s1zyy)
 
-🐦 Twitter / Other: [optional link]
 
 💬 I’m always happy to discuss this project, ideas, or opportunities for collaboration.
 
-📝 <b>TODO</b>
+📄 <b>License</b>
 
-🐳 Add Dockerfile for containerized deployment
-
-📦 Add docker-compose configuration for development and production setup
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+Contacts
 
 <b>© 2025 Vladyslav Savkiv</b>

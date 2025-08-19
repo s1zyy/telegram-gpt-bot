@@ -49,7 +49,9 @@ public class HandleCallBackQuery {
                         .builder()
                         .chatId(chatId)
                         .messageId(callbackQuery.getMessage().getMessageId())
-                        .text("Please enter tone you would like GPT to talk with you:")
+                        .text(("Please choose the tone you’d like GPT to use when talking with you.\n" +
+                                "For the best experience, your chat history will be automatically cleared to adjust the tone.\n" +
+                                "If you don’t want to clear the history, just go back."))
                         .build();
                 enterTone.setReplyMarkup(backInlineKeyboard.getBackInlineKeyboardMarkup());
                 return enterTone;

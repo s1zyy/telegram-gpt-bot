@@ -94,7 +94,7 @@ public class updateConsumer implements LongPollingSingleThreadUpdateConsumer {
                     return buildMessage(chatId, reply);
                 }
 
-        }
+            }
 
         }
         return List.of();
